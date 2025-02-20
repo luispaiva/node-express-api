@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Livros</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-8">
+    <h1 class="text-center text-2xl font-bold mb-6">Lista de Livros</h1>
+    <form id="add-book-form" class="mb-6 flex">
+        <input type="text" id="title" placeholder="Título" required class="border p-2 mr-2 flex-1">
+        <input type="text" id="author" placeholder="Autor" required class="border p-2 mr-2 flex-1">
+        <input type="text" id="description" placeholder="Descrição" required class="border p-2 mr-2 flex-1">
+        <button type="submit" class="bg-blue-500 text-white p-2 rounded">Adicionar Livro</button>
+    </form>
+    <ul id="books-list" class="list-none p-0"></ul>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const booksList = document.getElementById("books-list");
+            const addBookForm = document.getElementById("add-book-form");
+
+            function fetchBooks() {
+                fetch("http://localhost:3000/books")
+                    .then(response => response.json())
+                    .then(books => {
+                        booksList.innerHTML = "";
+                        books.forEach(book => {
+                            const li = document.createElement("li");
+                            li.classList.add("bg-white", "my-2", "p-4", "rounded", "shadow", "flex", "justify-between", "items-center");
+                            li.dataset.id = book.id;
+                            li.innerHTML = `
+                                ${book.title} - ${book.author} - ${book.description}
+                                <div>
+                                    <button class="update-book bg-yellow-500 text-white p-2 rounded mr-2">Atualizar</button>
+                                    <button class="delete-book bg-red-500 text-white p-2 rounded">Remover</button>
+                                </div>
+                            `;
+                            booksList.appendChild(li);
+                        });
+                    })
+                    .catch(error => console.error("Erro ao buscar os livros:", error));
+            }
+
+            addBookForm.addEventListener("submit", (event) => {
+                event.preventDefault();
+                const title = document.getElementById("title").value;
+                const author = document.getElementById("author").value;
+                const description = document.getElementById("description").value;
+
+                fetch("http://localhost:3000/books", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ title, author, description })
+                })
+                    .then(response => response.json())
+                    .then(() => {
+                        fetchBooks();
+                        addBookForm.reset();
+                    })
+                    .catch(error => console.error("Erro ao adicionar o livro:", error));
+            });
+
+            booksList.addEventListener("click", (event) => {
+                if (event.target.classList.contains("delete-book")) {
+                    const bookId = event.target.parentElement.parentElement.dataset.id;
+
+                    fetch(`http://localhost:3000/books/${bookId}`, {
+                        method: "DELETE"
+                    })
+                        .then(() => fetchBooks())
+                        .catch(error => console.error("Erro ao remover o livro:", error));
+                }
+
+                if (event.target.classList.contains("update-book")) {
+                    const bookId = event.target.parentElement.parentElement.dataset.id;
+                    const newTitle = prompt("Novo título:");
+                    const newAuthor = prompt("Novo autor:");
+                    const newDescription = prompt("Nova descrição:");
+
+                    if (newTitle && newAuthor && newDescription) {
+                        fetch(`http://localhost:3000/books/${bookId}`, {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ title: newTitle, author: newAuthor, description: newDescription })
+                        })
+                            .then(() => fetchBooks())
+                            .catch(error => console.error("Erro ao atualizar o livro:", error));
+                    }
+                }
+            });
+
+            fetchBooks();
+        });
+    </script>
+</body>
+
+</html>
